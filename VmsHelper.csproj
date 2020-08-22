@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1DF43765-FF6E-478D-8D85-55C07AE137DE}</ProjectGuid>
+    <ProjectGuid>{BF34B5D7-0309-4F87-A3BE-DE6D4B97855C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>VmsHelper</RootNamespace>
