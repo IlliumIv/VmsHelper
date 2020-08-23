@@ -6,6 +6,7 @@ using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
 using ExileCore.Shared.Cache;
+using ExileCore.Shared.Enums;
 
 // ReSharper disable IteratorNeverReturns
 
@@ -14,20 +15,20 @@ namespace VmsHelper
     public partial class VmsHelperCore : BaseSettingsPlugin<Settings>
     {
         private const float MIN_VMS_DURATION = 8.99f;
-        private const float MIN_MS_DURATION = 2.99f; 
+        private const float MIN_MS_DURATION = 2.99f;
         
         private DateTime NextVaalMoltenShell { get; set; }
         private DateTime NextMoltenShell { get; set; }
         private DateTime NextArmorFlask { get; set; }
         private DateTime NextSoulCatcherFlask { get; set; }
-        private TimeCache<ActorVaalSkill?>? VmsActorVaalSkill { get; set; }
-        private TimeCache<Life?>? PlayerLifeComponent { get; set; }
+        private TimeCache<ActorVaalSkill> VmsActorVaalSkill { get; set; }
+        private TimeCache<Life> PlayerLifeComponent { get; set; }
         
         public override void OnLoad()
         {
-            VmsActorVaalSkill = new TimeCache<ActorVaalSkill?>(UpdateVms, 5000);
-            PlayerLifeComponent = new TimeCache<Life?>(UpdateLifeComponent, 66);
-            Core.MainRunner.Run(new Coroutine(MainCoroutine(), this, "VmsHelper1"));
+            VmsActorVaalSkill = new TimeCache<ActorVaalSkill>(UpdateVms, 5000);
+            PlayerLifeComponent = new TimeCache<Life>(UpdateLifeComponent, 66);
+            Core.MainRunner.Run(new Coroutine(MainCoroutine(), this, "VmsHelperMain"));
             base.OnLoad();
         }
 
@@ -55,7 +56,7 @@ namespace VmsHelper
         {
             if (!Settings.UseVms) yield break;
             if (NextVaalMoltenShell > DateTime.Now) yield break;
-            if (!IsVmsReady() && !CanUseSoulRipper()) yield break;
+            if (!IsVmsReady() && !CanUseSoulRipperFlask()) yield break;
 
             var playerHpPercent = PlayerLifeComponent?.Value?.HPPercentage;
             var playerEsPercent = PlayerLifeComponent?.Value?.ESPercentage;
@@ -81,12 +82,15 @@ namespace VmsHelper
                     yield return Input.KeyPress(Settings.SoulCatcherKey);
                     NextSoulCatcherFlask = DateTime.Now.AddMilliseconds(4000);
                 }
-                if (Settings.SoulRipperEnabled)
+                if (Settings.SoulRipperEnabled &&
+                    !IsVmsReady() &&
+                    CanUseSoulRipperFlask())
                 {
                     yield return Input.KeyPress(Settings.SoulRipperKey);
                 }
 
                 yield return Input.KeyPress(Settings.VmsKey);
+                NextVaalMoltenShell = DateTime.Now.AddMilliseconds(100);
             }
         }
 
@@ -115,6 +119,7 @@ namespace VmsHelper
                 }
 
                 yield return Input.KeyPress(Settings.MsKey);
+                NextMoltenShell = DateTime.Now.AddMilliseconds(100);
             }
         }
         
@@ -143,12 +148,21 @@ namespace VmsHelper
                    VmsActorVaalSkill?.Value?.CurrVaalSouls >= VmsActorVaalSkill?.Value?.VaalSoulsPerUse;
         }
 
-        private bool CanUseSoulRipper()
+        private bool CanUseSoulRipperFlask()
         {
-            if (!Settings.SoulRipperEnabled) return false;
-            if (VmsActorVaalSkill?.Value == null) return true; // this offset is often broken
-            return VmsActorVaalSkill?.Value?.CurrVaalSouls >= 1 &&
-                   VmsActorVaalSkill?.Value?.CurrVaalSouls <= 25;
+            var currentFlask = GameController
+                ?.Game
+                ?.IngameState
+                ?.ServerData
+                ?.PlayerInventories
+                ?.FirstOrDefault(x => 
+                    x?.Inventory?.InventType == InventoryTypeE.Flask)?.Inventory?.InventorySlotItems?.FirstOrDefault(x =>
+                        x?.Item?.Path == @"Metadata/Items/Flasks/FlaskUtility8" &&
+                        x?.Item?.GetComponent<RenderItem>().ResourcePath == @"Art/2DItems/Flasks/SoulRipper.dds")
+                ?.Item;
+            var flaskChargesStruct = currentFlask?.GetComponent<Charges>();
+            var maxCharges = flaskChargesStruct?.ChargesMax + currentFlask?.GetComponent<Mods>()?.ItemMods[1].Value1;
+            return flaskChargesStruct?.NumCharges == maxCharges;
         }
         
         private bool CanRun()
