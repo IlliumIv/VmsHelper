@@ -32,6 +32,8 @@ namespace VmsHelper
 
         private Buffs UpdateBuffsComponent() => GameController?.Player?.GetComponent<Buffs>();
         
+        private Buffs UpdateBuffsComponent() => GameController?.Player?.GetComponent<Buffs>();
+        
         private ActorVaalSkill GetVaalSkill(string internalName)
         {
             var actorSkill = GameController
