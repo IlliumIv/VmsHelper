@@ -29,6 +29,8 @@ namespace VmsHelper
         }
         
         private Life UpdateLifeComponent() => GameController?.Player?.GetComponent<Life>();
+
+        private Buffs UpdateBuffsComponent() => GameController?.Player?.GetComponent<Buffs>();
         
         private ActorVaalSkill GetVaalSkill(string internalName)
         {
